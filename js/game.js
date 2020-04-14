@@ -57,10 +57,10 @@ game.States.menu = function(){
         const bg = game.add.tileSprite(0,0,game.width,game.height,'background')
 
         // 自动播放 x轴以向左移动，y轴不变
-        bg.autoScroll(-10,0)
+        bg.autoScroll(-5,0)
 
         const ground = game.add.tileSprite(0,game.height-112,game.width,112,'ground')
-        ground.autoScroll(-100,0)
+        ground.autoScroll(-50,0)
 
         // 1.创建小组titleGroup
         const titleGroup = game.add.group()
