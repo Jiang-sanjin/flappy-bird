@@ -57,10 +57,10 @@ game.States.menu = function(){
         const bg = game.add.tileSprite(0,0,game.width,game.height,'background')
 
         // 自动播放 x轴以向左移动，y轴不变
-        bg.autoScroll(-20,0)
+        bg.autoScroll(-10,0)
 
         const ground = game.add.tileSprite(0,game.height-112,game.width,112,'ground')
-        ground.autoScroll(-200,0)
+        ground.autoScroll(-100,0)
 
         // 1.创建小组titleGroup
         const titleGroup = game.add.group()
@@ -148,7 +148,7 @@ game.States.play = function(){
         this.hasStarted = false  //判断游戏是否开始
 
 
-        game.time.events.loop(1000,this.generatePipes,this)
+        game.time.events.loop(2000,this.generatePipes,this)
         // loop一旦定义马上执行
         game.time.events.stop(false)
     
@@ -193,15 +193,15 @@ game.States.play = function(){
         // Math.random() 产生0-1的随机数  Math.floor返回小于或等于x的整数
         //const position =110+ Math.floor(210*Math.random())
 
-        const position = -250 +Math.floor(Math.random()*200)  //上管道的随机位置
+        const position = -250 +Math.floor(Math.random()*100)  //上管道的随机位置
       
         const topPieY = position    //上面管道长度
-        const buttomPieY = 100+ 320+position  //下管道长度 (实际为在y轴的位置 )
+        const buttomPieY = 150+ 320+position  //下管道长度 (实际为在y轴的位置 )
 
         const topPie = game.add.sprite(game.width,topPieY,'pipe',0,this.pipeGroup)
         const bottomPie = game.add.sprite(game.width,buttomPieY,'pipe',1,this.pipeGroup)
 
-        this.pipeGroup.setAll('body.velocity.x',-200)
+        this.pipeGroup.setAll('body.velocity.x',-100)
     }
 
     this.startGame = function(){
