@@ -17,6 +17,11 @@ game.States = { }
 game.States.menu = function(){
     
     this.preload = function(){
+
+        // 加载字体
+        game.load.bitmapFont('flappy_font', 'assets/fonts/flappyfont/flappyfont.png', 'assets/fonts/flappyfont/flappyfont.fnt')
+
+
          // 加载（图片资源命名background，资源路径）
         game.load.image('background','assets/background.png')
 
@@ -34,6 +39,16 @@ game.States.menu = function(){
         game.load.spritesheet('pipe','assets/pipes.png',54,320,2)
         //game.load.spritesheet('pipe','assets/pipes.png',54,320,2)
 
+
+        game.load.audio('fly_sound','assets/flap.wav')
+        game.load.audio('score_sound','assets/score.wav')
+        game.load.audio('hit_pipe_sound', 'assets/pipe-hit.wav'); //撞击管道的音效
+        game.load.audio('hit_ground_sound', 'assets/ouch.wav'); //撞击地面的音效
+        game.load.image('btn','assets/start-button.png');  //按钮
+        game.load.image('ready_text','assets/get-ready.png');
+    	game.load.image('play_tip','assets/instructions.png');
+        game.load.image('game_over','assets/gameover.png')
+        game.load.image('score_board','assets/scoreboard.png')
     }
     this.create =  function(){
        
@@ -78,6 +93,8 @@ game.States.menu = function(){
         // 按钮中心点默认在左上角  0.5  0.设置在中心
         btn.anchor.setTo(0.5,0.5)
 
+
+        
     }
 
 
@@ -92,23 +109,19 @@ game.States.play = function(){
 
     this.create = function(){
         // 加载完成
-   
+        
         //加载背景
         // 不可用const定义  用this到play中
         this.bg = game.add.tileSprite(0,0,game.width,game.height,'background')
 
         // 管道组设计（避免管道挡住地板，先加载管道再加载地板，让地板覆盖管道）
         this.pipeGroup = game.add.group()
+        this.scoreText = game.add.bitmapText(game.world.centerX-20, 30, 'flappy_font', '0', 36)
         // 开启物理引擎
         this.pipeGroup.enableBody = true
 
         // 加载地板
         this.ground = game.add.tileSprite(0,game.height-112,game.width,112,'ground')
-
-
-      
-
-
         // 加载小鸟
         this.bird = game.add.sprite(50,150,'bird')
         this.bird.animations.add('fly')
@@ -138,7 +151,12 @@ game.States.play = function(){
         game.time.events.loop(1000,this.generatePipes,this)
         // loop一旦定义马上执行
         game.time.events.stop(false)
-
+    
+        //加载声音
+        this.soundFly = game.add.sound('fly_sound')
+        this.soundScore = game.add.sound('score_sound')
+        this.soundHitPipe = game.add.sound('hit_pipe_sound');
+		this.soundHitGround = game.add.sound('hit_ground_sound');
     }
 
    
@@ -150,6 +168,16 @@ game.States.play = function(){
         }
         //    collide碰撞检测   在hitGround实现
         game.physics.arcade.collide(this.bird,this.ground,this.hitGround,null,this)
+
+        // collide碰撞两个物体受到力
+        // overlap 掠过
+        game.physics.arcade.overlap(this.bird,this.pipeGroup,this.hitPipe,null,this)
+
+
+
+        // 检查存在于游戏的组件
+        this.pipeGroup.forEachExists(this.checkScore,this)
+
         if(this.bird.angle<90){
             this.bird.angle+=2.5
 
@@ -164,7 +192,8 @@ game.States.play = function(){
         // 2.计算管道空白区间位置
         // Math.random() 产生0-1的随机数  Math.floor返回小于或等于x的整数
         //const position =110+ Math.floor(210*Math.random())
-        const position = -250 +Math.floor(Math.random()*200)
+
+        const position = -250 +Math.floor(Math.random()*200)  //上管道的随机位置
       
         const topPieY = position    //上面管道长度
         const buttomPieY = 100+ 320+position  //下管道长度 (实际为在y轴的位置 )
@@ -176,7 +205,9 @@ game.States.play = function(){
     }
 
     this.startGame = function(){
-        
+
+        this.gameOverFlag = false
+        this.score = 0
         this.hasStarted = true
         console.log("开始")
         this.bg.autoScroll(-10,0)
@@ -191,21 +222,91 @@ game.States.play = function(){
         game.input.onDown.add(this.fly,this)
         game.time.events.start()
     }
+    this.gameOver = function(){
+        this.gameOverFlag = true
+        this.bg.stopScroll()
+        this.ground.stopScroll()
+        this.pipeGroup.setAll('body.velocity.x',0)
+        this.bird.animations.stop('fly',0)
+        game.input.onDown.remove(this.fly,this)
+        game.time.events.stop()
 
+        this.showGameOverMenu()
+    }
+    //游戏结束记分板
+    this.showGameOverMenu = function(){
+        this.scoreText.destroy()  //把精灵删除
+        game.bestScore = game.bestScore || 0    //最高成绩
+        if(this.score > game.bestScore){
+
+            game.bestScore = this.score
+        }
+
+        // 将分数内容放置在一个组内
+        this.gameOverGroup = game.add.group()  //添加一个组
+        var gameOverText = this.gameOverGroup.create(game.width/2,0,'game_over'); //game over 文字图片
+		var scoreboard = this.gameOverGroup.create(game.width/2,70,'score_board'); //分数板
+		var currentScoreText = game.add.bitmapText(game.width/2 + 60, 105, 'flappy_font', this.score+'', 20, this.gameOverGroup); //当前分数
+		var bestScoreText = game.add.bitmapText(game.width/2 + 60, 153, 'flappy_font', game.bestScore+'', 20, this.gameOverGroup); //最好分数
+		var replayBtn = game.add.button(game.width/2, 250, 'btn', function(){//重玩按钮
+            game.state.start('myplay');
+            
+		}, this);
+		gameOverText.anchor.setTo(0.5, 0);
+		scoreboard.anchor.setTo(0.5, 0);
+		replayBtn.anchor.setTo(0.5, 0);
+		this.gameOverGroup.y = 40;
+    }
 
     this.fly =function(){
         // console.log("飞")
         // velocity作用力  
         this.bird.body.velocity.y=-350
+        
         game.add.tween(this.bird).to({ angle:-30},100,null,true,0,0,false)
-
+        this.soundFly.play()  //播放声音
 
     }
+
     this.hitGround = function(){
-        console.log("撞到地板")
+        // console.log("撞到地板")
+        
+        if(this.gameOverFlag==false)
+        {
+            this.soundHitGround.play()
+            console.log("撞到地板")
+        }
+       
+        this.gameOver();
     }
-   
 
+    this.hitPipe = function(){
+    //    console.log("撞柱子")
+    if(this.gameOverFlag==false)
+        {
+        this.soundHitPipe.play()
+        }
+        this.gameOver()
+   }
+
+   this.checkScore = function(pipe){
+        // 得分
+    
+    // pipe指管道
+        
+        // pipe是形参  虚拟的 pipe.hasScore  
+        if( !pipe.hasScore&&pipe.y<=0 && pipe.x<=this.bird.x-54){
+            pipe.hasScore = true
+            this.score++
+            this.scoreText.text = this.score
+            
+            this.soundScore.play() 
+            console.log(this.score)
+        }
+        return
+   }
+
+  
 }
 
 // game对象添加场景
