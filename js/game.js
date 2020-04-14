@@ -201,7 +201,7 @@ game.States.play = function(){
         const topPie = game.add.sprite(game.width,topPieY,'pipe',0,this.pipeGroup)
         const bottomPie = game.add.sprite(game.width,buttomPieY,'pipe',1,this.pipeGroup)
 
-        this.pipeGroup.setAll('body.velocity.x',-200)
+        this.pipeGroup.setAll('body.velocity.x',-100)
     }
 
     this.startGame = function(){
